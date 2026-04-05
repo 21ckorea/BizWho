@@ -1,0 +1,37 @@
+name: caller_id_v01
+description: 비즈후 - 발신자 식별 앱 (Version 1.1.14)
+
+
+publish_to: 'none'
+
+version: 1.1.14+19
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  csv: ^6.0.0
+  path_provider: ^2.1.1
+  shared_preferences: ^2.5.5
+  url_launcher: ^6.3.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  image_path: "assets/icon/app_icon.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/employee_contacts.csv
+    - assets/icon/
