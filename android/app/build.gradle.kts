@@ -41,8 +41,8 @@ android {
         applicationId = "com.bizwho.callerid"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.7.6"
+        versionCode = 10
+        versionName = "1.7.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

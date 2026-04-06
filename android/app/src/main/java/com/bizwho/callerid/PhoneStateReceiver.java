@@ -116,12 +116,12 @@ public class PhoneStateReceiver extends BroadcastReceiver {
     private void startOverlayService(Context context, String employeeInfo) {
         // v1.3.0: SharedPreferences에서 사용자 설정값 읽기
         SharedPreferences prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE);
-        String position = prefs.getString("flutter.pref_pos_v3", "top");
-        int fontSize = (int) prefs.getLong("flutter.pref_size_v3", 22);
+        String position = prefs.getString("flutter.pref_pos_v4", "middle");
+        int fontSize = (int) prefs.getLong("flutter.pref_size_v4", 25);
         // v1.4.0: 유지 시간 로드 (Flutter setDouble -> Android Long Bits 변환 필요)
         int duration = 30;
         try {
-            long bits = prefs.getLong("flutter.pref_duration_v3", Double.doubleToRawLongBits(30.0));
+            long bits = prefs.getLong("flutter.pref_duration_v4", Double.doubleToRawLongBits(30.0));
             duration = (int) Double.longBitsToDouble(bits);
         } catch (Exception e) {
             Log.e("CallerIDDEBUG", "Error reading duration: " + e.getLocalizedMessage());

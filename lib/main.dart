@@ -52,9 +52,9 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
   List<Map<String, dynamic>> _filteredEmployees = [];
   final TextEditingController _searchController = TextEditingController();
 
-  String _position = 'top';
-  double _fontSize = 22.0;
-  double _listFontSize = 16.0; // v1.1.3: 리스트 전용 글자 크기 추가
+  String _position = 'middle';
+  double _fontSize = 25.0;
+  double _listFontSize = 10.0; // v1.1.3: 리스트 전용 글자 크기 추가
   double _showDuration = 30.0; // v1.4.0: 정보창 유지 시간 (기본 30초)
 
   @override
@@ -62,24 +62,38 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
     super.initState();
     _initData();
     _loadSettings();
+    _checkOverlayPermissionOnStart();
+  }
+
+  Future<void> _checkOverlayPermissionOnStart() async {
+    // 일반 권한(전화, 알림 등) 요청 팝업과 겹치지 않도록 3초 대기 후 실행
+    await Future.delayed(const Duration(seconds: 3));
+    try {
+      final bool hasOverlay = await platform.invokeMethod('checkOverlayPermission');
+      if (!hasOverlay) {
+        await platform.invokeMethod('requestOverlayPermission');
+      }
+    } catch (e) {
+      debugPrint("Overlay Permission Check Error: $e");
+    }
   }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _position = prefs.getString('pref_pos_v3') ?? 'top';
-      _fontSize = (prefs.getInt('pref_size_v3') ?? 22).toDouble();
-      _listFontSize = (prefs.getDouble('pref_list_size_v3') ?? 16.0);
-      _showDuration = (prefs.getDouble('pref_duration_v3') ?? 30.0);
+      _position = prefs.getString('pref_pos_v4') ?? 'middle';
+      _fontSize = (prefs.getInt('pref_size_v4') ?? 25).toDouble();
+      _listFontSize = (prefs.getDouble('pref_list_size_v4') ?? 10.0);
+      _showDuration = (prefs.getDouble('pref_duration_v4') ?? 30.0);
     });
   }
 
   Future<void> _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('pref_pos_v3', _position);
-    await prefs.setInt('pref_size_v3', _fontSize.toInt());
-    await prefs.setDouble('pref_list_size_v3', _listFontSize);
-    await prefs.setDouble('pref_duration_v3', _showDuration);
+    await prefs.setString('pref_pos_v4', _position);
+    await prefs.setInt('pref_size_v4', _fontSize.toInt());
+    await prefs.setDouble('pref_list_size_v4', _listFontSize);
+    await prefs.setDouble('pref_duration_v4', _showDuration);
   }
 
   Future<void> _initData() async {

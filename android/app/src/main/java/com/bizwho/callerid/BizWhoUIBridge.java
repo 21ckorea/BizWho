@@ -10,11 +10,13 @@ import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
@@ -36,6 +38,13 @@ public class BizWhoUIBridge extends Service {
     private View overlayView;
     private Handler timerHandler = new Handler(Looper.getMainLooper());
     private Runnable hideRunnable;
+
+    // v1.7.9: 폴더블 대응을 위한 현재 상태 저장
+    private String lastInfo;
+    private String lastPosition;
+    private int lastFontSize;
+    private int lastDuration;
+    private boolean isShowingActive = false; // v1.7.9-hotfix: 오버레이 활성 상태 추적
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -78,6 +87,13 @@ public class BizWhoUIBridge extends Service {
     }
 
     private void showOverlay(String info, String position, int fontSize, int duration) {
+        // v1.7.9: 상태 저장 (폴더블 화면 전환 대비)
+        this.lastInfo = info;
+        this.lastPosition = position;
+        this.lastFontSize = fontSize;
+        this.lastDuration = duration;
+        this.isShowingActive = true; // v1.7.9-hotfix: 요청 수신됨
+
         removeExistingOverlay();
         windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         overlayView = createProgrammaticLayout(info, fontSize, duration);
@@ -91,6 +107,7 @@ public class BizWhoUIBridge extends Service {
         );
 
         // v1.1.2: 위치(Gravity) 설정 반영
+        // v1.7.9: "middle" 문자열로 통일
         if ("middle".equals(position)) {
             params.gravity = Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL;
             params.y = 0;
@@ -111,6 +128,21 @@ public class BizWhoUIBridge extends Service {
         } catch (Exception e) {
             Log.e("CallerIDDEBUG", "FAIL: Unable to add window - " + e.getMessage());
         }
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        // v1.7.9: 폴더블 폰(Z Flip) 화면 전환 감지
+        Log.i("CallerIDDEBUG", "onConfigurationChanged: Screen layout/Folding changed");
+        
+        // 500ms 지연 후 재렌더링 (OS의 디스플레이 전환 완료 대기)
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            if (isShowingActive && lastInfo != null) {
+                Log.i("CallerIDDEBUG", "RE-RENDERING overlay for new display configuration");
+                showOverlay(lastInfo, lastPosition, lastFontSize, lastDuration);
+            }
+        }, 500);
     }
 
     private View createProgrammaticLayout(String info, int fontSize, int duration) {
@@ -255,6 +287,7 @@ public class BizWhoUIBridge extends Service {
 
     @Override
     public void onDestroy() {
+        isShowingActive = false; // 서비스 종료 시 상태 해제
         removeExistingOverlay();
         super.onDestroy();
     }
