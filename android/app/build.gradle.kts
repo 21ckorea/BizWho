@@ -40,9 +40,9 @@ android {
     defaultConfig {
         applicationId = "com.bizwho.callerid"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.1-CLEAN"
+        targetSdk = 35
+        versionCode = 5
+        versionName = "1.7.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
