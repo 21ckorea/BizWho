@@ -57,6 +57,18 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
   double _listFontSize = 10.0; // v1.1.3: 리스트 전용 글자 크기 추가
   double _showDuration = 30.0; // v1.4.0: 정보창 유지 시간 (기본 30초)
 
+  // v1.8.0: 오버레이 테마 색상 추가
+  String _bgColor = 'E60D47A1'; // Default Signature Blue
+  String _textColor = 'FFFFFF'; // Default White
+
+  final List<Map<String, String>> _themes = [
+    {'name': '시그니처 블루', 'bg': 'E60D47A1', 'text': 'FFFFFF'},
+    {'name': '차콜 블랙', 'bg': 'E6212121', 'text': 'FFFFFF'},
+    {'name': '포레스트 그린', 'bg': 'E61B5E20', 'text': 'FFFFFF'},
+    {'name': '보르도 레드', 'bg': 'E6880E4F', 'text': 'FFFFFF'},
+    {'name': '모던 화이트', 'bg': 'F2FFFFFF', 'text': '0D47A1'},
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -85,6 +97,8 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
       _fontSize = (prefs.getInt('pref_size_v4') ?? 25).toDouble();
       _listFontSize = (prefs.getDouble('pref_list_size_v4') ?? 10.0);
       _showDuration = (prefs.getDouble('pref_duration_v4') ?? 30.0);
+      _bgColor = prefs.getString('pref_bg_v1') ?? 'E60D47A1';
+      _textColor = prefs.getString('pref_text_v1') ?? 'FFFFFF';
     });
   }
 
@@ -94,6 +108,8 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
     await prefs.setInt('pref_size_v4', _fontSize.toInt());
     await prefs.setDouble('pref_list_size_v4', _listFontSize);
     await prefs.setDouble('pref_duration_v4', _showDuration);
+    await prefs.setString('pref_bg_v1', _bgColor);
+    await prefs.setString('pref_text_v1', _textColor);
   }
 
   Future<void> _initData() async {
@@ -267,7 +283,9 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
                 'info': '홍미나(상무/팀장)\n전략기획지원팀',
                 'position': _position,
                 'fontSize': _fontSize.toInt(),
-                'duration': _showDuration.toInt()
+                'duration': _showDuration.toInt(),
+                'bgColor': _bgColor,
+                'textColor': _textColor
               });
             },
             label: const Text('오버레이 테스트'),
@@ -307,12 +325,20 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
                   const Text('정보창 위치', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
                   ToggleButtons(
-                    isSelected: [_position == 'top', _position == 'middle', _position == 'bottom'],
+                    isSelected: [
+                      _position == 'top', 
+                      _position == 'semi_top',
+                      _position == 'middle', 
+                      _position == 'semi_bottom',
+                      _position == 'bottom'
+                    ],
                     onPressed: (index) {
                       setModalState(() {
                         if (index == 0) _position = 'top';
-                        else if (index == 1) _position = 'middle';
-                        else if (index == 2) _position = 'bottom';
+                        else if (index == 1) _position = 'semi_top';
+                        else if (index == 2) _position = 'middle';
+                        else if (index == 3) _position = 'semi_bottom';
+                        else if (index == 4) _position = 'bottom';
                       });
                       setState(() {});
                       _saveSettings();
@@ -321,9 +347,11 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
                     selectedColor: Colors.white,
                     fillColor: const Color(0xFF0D47A1),
                     children: const [
-                      Padding(padding: EdgeInsets.symmetric(horizontal: 30), child: Text('상단')),
-                      Padding(padding: EdgeInsets.symmetric(horizontal: 30), child: Text('중간')),
-                      Padding(padding: EdgeInsets.symmetric(horizontal: 30), child: Text('하단')),
+                      Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('최상')),
+                      Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('상')),
+                      Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('중')),
+                      Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('하')),
+                      Padding(padding: EdgeInsets.symmetric(horizontal: 12), child: Text('최하')),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -371,6 +399,53 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
                     },
                   ),
                   const Text('설정된 시간이 지나면 자동으로 정보창이 닫힙니다.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 24),
+
+                  const Text('정보창 컬러 테마', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 50,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _themes.length,
+                      itemBuilder: (context, index) {
+                        final theme = _themes[index];
+                        final bool isSelected = _bgColor == theme['bg'];
+                        return GestureDetector(
+                          onTap: () {
+                            setModalState(() {
+                              _bgColor = theme['bg']!;
+                              _textColor = theme['text']!;
+                            });
+                            setState(() {});
+                            _saveSettings();
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 10),
+                            width: 50,
+                            decoration: BoxDecoration(
+                              color: Color(int.parse(theme['bg']!, radix: 16)),
+                              borderRadius: BorderRadius.circular(25),
+                              border: Border.all(
+                                color: isSelected ? Colors.orange : Colors.grey.shade300,
+                                width: isSelected ? 3 : 1,
+                              ),
+                              boxShadow: isSelected ? [BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 4)] : null,
+                            ),
+                            child: Center(
+                              child: Text(
+                                'A', 
+                                style: TextStyle(
+                                  color: Color(int.parse(theme['text']!, radix: 16)),
+                                  fontWeight: FontWeight.bold
+                                )
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
 
                   const SizedBox(height: 32),
                   const Divider(height: 1, thickness: 1),
@@ -419,7 +494,9 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
                               'info': '홍미나(상무/팀장)\n전략기획지원팀',
                               'position': _position,
                               'fontSize': _fontSize.toInt(),
-                              'duration': _showDuration.toInt()
+                              'duration': _showDuration.toInt(),
+                              'bgColor': _bgColor,
+                              'textColor': _textColor
                             });
                           },
                           icon: const Icon(Icons.remove_red_eye, size: 20),

@@ -44,6 +44,8 @@ public class BizWhoUIBridge extends Service {
     private String lastPosition;
     private int lastFontSize;
     private int lastDuration;
+    private String lastBgColor; // v1.8.0
+    private String lastTextColor; // v1.8.0
     private boolean isShowingActive = false; // v1.7.9-hotfix: 오버레이 활성 상태 추적
 
     @Override
@@ -79,24 +81,28 @@ public class BizWhoUIBridge extends Service {
                 String position = intent.getStringExtra("position");
                 int fontSize = intent.getIntExtra("fontSize", 22);
                 int duration = intent.getIntExtra("duration", 30);
-                showOverlay(info, position, fontSize, duration);
+                String bgColor = intent.getStringExtra("bgColor");
+                String textColor = intent.getStringExtra("textColor");
+                showOverlay(info, position, fontSize, duration, bgColor, textColor);
             }
         }
 
         return START_NOT_STICKY;
     }
 
-    private void showOverlay(String info, String position, int fontSize, int duration) {
+    private void showOverlay(String info, String position, int fontSize, int duration, String bgColor, String textColor) {
         // v1.7.9: 상태 저장 (폴더블 화면 전환 대비)
         this.lastInfo = info;
         this.lastPosition = position;
         this.lastFontSize = fontSize;
         this.lastDuration = duration;
-        this.isShowingActive = true; // v1.7.9-hotfix: 요청 수신됨
+        this.lastBgColor = bgColor;
+        this.lastTextColor = textColor;
+        this.isShowingActive = true; 
 
         removeExistingOverlay();
         windowManager = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
-        overlayView = createProgrammaticLayout(info, fontSize, duration);
+        overlayView = createProgrammaticLayout(info, fontSize, duration, bgColor, textColor);
 
         WindowManager.LayoutParams params = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -111,16 +117,26 @@ public class BizWhoUIBridge extends Service {
         );
 
         // v1.1.2: 위치(Gravity) 설정 반영
-        // v1.7.9: "middle" 문자열로 통일
+        // v1.8.0: 5단계 위치 세분화 로직
         if ("middle".equals(position)) {
             params.gravity = Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL;
             params.y = 0;
+        } else if ("top".equals(position)) {
+            params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+            params.y = 100;
+        } else if ("semi_top".equals(position)) {
+            params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+            params.y = 400;
+        } else if ("semi_bottom".equals(position)) {
+            params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
+            params.y = 400;
         } else if ("bottom".equals(position)) {
             params.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL;
             params.y = 150;
         } else {
-            params.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-            params.y = 100;
+            // 기본값 (중간)
+            params.gravity = Gravity.CENTER_VERTICAL | Gravity.CENTER_HORIZONTAL;
+            params.y = 0;
         }
 
         try {
@@ -144,13 +160,23 @@ public class BizWhoUIBridge extends Service {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (isShowingActive && lastInfo != null) {
                 Log.i("CallerIDDEBUG", "RE-RENDERING overlay for new display configuration");
-                showOverlay(lastInfo, lastPosition, lastFontSize, lastDuration);
+                showOverlay(lastInfo, lastPosition, lastFontSize, lastDuration, lastBgColor, lastTextColor);
             }
         }, 500);
     }
 
-    private View createProgrammaticLayout(String info, int fontSize, int duration) {
-        // v1.3.0: Colorful Premium Card 디자인
+    private View createProgrammaticLayout(String info, int fontSize, int duration, String bgColorHex, String textColorHex) {
+        // v1.8.0: 프리미엄 테마 컬러 적용
+        int bgColor = Color.parseColor("#" + (bgColorHex != null ? bgColorHex : "E60D47A1"));
+        int textColor = Color.parseColor("#" + (textColorHex != null ? textColorHex : "FFFFFF"));
+        
+        // 투명도 조절된 보조 색상 (그라데이션용)
+        int secondaryColor = Color.argb(
+            Color.alpha(bgColor), 
+            Math.max(0, Color.red(bgColor) - 30), 
+            Math.max(0, Color.green(bgColor) - 30), 
+            Math.max(0, Color.blue(bgColor) - 30)
+        );
         
         // 외곽 래퍼 (마진용)
         LinearLayout wrapper = new LinearLayout(this);
@@ -163,17 +189,13 @@ public class BizWhoUIBridge extends Service {
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
         
-        // 그라데이션 배경 (Deep Blue → Teal)
+        // 그라데이션 배경 (사용자 지정 색상 기반)
         GradientDrawable shape = new GradientDrawable(
             GradientDrawable.Orientation.LEFT_RIGHT,
-            new int[]{
-                Color.parseColor("#E6083B7A"),  // Deep Navy
-                Color.parseColor("#E60D47A1"),  // Signature Blue
-                Color.parseColor("#E6006064")   // Dark Teal
-            }
+            new int[]{ secondaryColor, bgColor, secondaryColor }
         );
         shape.setCornerRadius(TypedValueToPx(20));
-        shape.setStroke(TypedValueToPx(1.5f), Color.parseColor("#66FFFFFF"));
+        shape.setStroke(TypedValueToPx(1.5f), Color.argb(100, 255, 255, 255));
         card.setBackground(shape);
 
         int padH = TypedValueToPx(20);
@@ -193,7 +215,8 @@ public class BizWhoUIBridge extends Service {
         
         ImageView iconView = new ImageView(this);
         iconView.setImageResource(android.R.drawable.ic_menu_call);
-        iconView.setColorFilter(Color.parseColor("#80DEEA")); // Cyan 200
+        iconView.setColorFilter(textColor); 
+        iconView.setAlpha(0.8f);
         iconView.setBackground(circleBg);
         int iconPad = TypedValueToPx(8);
         iconView.setPadding(iconPad, iconPad, iconPad, iconPad);
@@ -218,20 +241,21 @@ public class BizWhoUIBridge extends Service {
             deptLine = parts.length > 1 ? parts[1] : "";
         }
 
-        // 이름 (White Bold)
+        // 이름 (사용자 지정 색상 Bold)
         TextView nameText = new TextView(this);
         nameText.setText(nameLine);
-        nameText.setTextColor(Color.WHITE);
+        nameText.setTextColor(textColor);
         nameText.setTextSize((float) fontSize);
         nameText.setTypeface(null, Typeface.BOLD);
-        nameText.setShadowLayer(4f, 0f, 2f, Color.parseColor("#40000000"));
+        nameText.setShadowLayer(4f, 0f, 2f, Color.argb(60, 0, 0, 0));
         textBlock.addView(nameText);
 
-        // 부서 (Golden Amber)
+        // 부서 (사용자 지정 색상 연하게)
         if (!deptLine.isEmpty()) {
             TextView deptText = new TextView(this);
             deptText.setText(deptLine);
-            deptText.setTextColor(Color.parseColor("#FFECB3")); // Amber 100
+            deptText.setTextColor(textColor);
+            deptText.setAlpha(0.85f);
             deptText.setTextSize((float) Math.max(fontSize - 4, 14));
             deptText.setTypeface(null, Typeface.NORMAL);
             LinearLayout.LayoutParams deptParams = new LinearLayout.LayoutParams(

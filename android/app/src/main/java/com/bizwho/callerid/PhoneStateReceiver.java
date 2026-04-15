@@ -118,6 +118,9 @@ public class PhoneStateReceiver extends BroadcastReceiver {
         SharedPreferences prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE);
         String position = prefs.getString("flutter.pref_pos_v4", "middle");
         int fontSize = (int) prefs.getLong("flutter.pref_size_v4", 25);
+        String bgColor = prefs.getString("flutter.pref_bg_v1", "E60D47A1");
+        String textColor = prefs.getString("flutter.pref_text_v1", "FFFFFF");
+
         // v1.4.0: 유지 시간 로드 (Flutter setDouble -> Android Long Bits 변환 필요)
         int duration = 30;
         try {
@@ -132,7 +135,9 @@ public class PhoneStateReceiver extends BroadcastReceiver {
         intent.putExtra("position", position);
         intent.putExtra("fontSize", fontSize);
         intent.putExtra("duration", duration);
-        Log.i("CallerIDDEBUG", "Overlay settings: pos=" + position + ", size=" + fontSize + ", dur=" + duration);
+        intent.putExtra("bgColor", bgColor);
+        intent.putExtra("textColor", textColor);
+        Log.i("CallerIDDEBUG", "Overlay settings: pos=" + position + ", size=" + fontSize + ", dur=" + duration + ", colors=" + bgColor + "/" + textColor);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
