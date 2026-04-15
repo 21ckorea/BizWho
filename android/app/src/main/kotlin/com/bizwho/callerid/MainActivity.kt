@@ -64,14 +64,20 @@ class MainActivity: FlutterActivity() {
                         val info = args?.get("info") as? String ?: "소속부서|성함 직책님"
                         val position = args?.get("position") as? String ?: "top"
                         val fontSize = args?.get("fontSize") as? Int ?: 22
+                        val duration = args?.get("duration") as? Int ?: 30
+                        val bgColor = args?.get("bgColor") as? String ?: "E60D47A1"
+                        val textColor = args?.get("textColor") as? String ?: "FFFFFF"
                         
                         Toast.makeText(this@MainActivity, "미리보기 실행 중: ${position.uppercase()}", Toast.LENGTH_SHORT).show()
-                        Log.i("CallerIDDEBUG", "Starting BizWhoUIBridge: $info (Pos: $position, Size: $fontSize)")
+                        Log.i("CallerIDDEBUG", "Starting BizWhoUIBridge: $info (Pos: $position, Size: $fontSize, Color: $bgColor)")
                         
                         val intent = Intent(this, BizWhoUIBridge::class.java)
                         intent.putExtra("employeeInfo", info)
                         intent.putExtra("position", position)
                         intent.putExtra("fontSize", fontSize)
+                        intent.putExtra("duration", duration)
+                        intent.putExtra("bgColor", bgColor)
+                        intent.putExtra("textColor", textColor)
                         
                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                             startForegroundService(intent)
