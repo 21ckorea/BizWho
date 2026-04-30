@@ -54,9 +54,9 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
   final TextEditingController _searchController = TextEditingController();
 
   String _position = 'middle';
-  double _fontSize = 25.0;
-  double _listFontSize = 10.0; // v1.1.3: 리스트 전용 글자 크기 추가
-  double _showDuration = 30.0; // v1.4.0: 정보창 유지 시간 (기본 30초)
+  double _fontSize = 25.0; // v1.1.3: 글자 크기 변수화
+  double _listFontSize = 14.0; // v1.1.3: 리스트 전용 글자 크기 추가
+  double _showDuration = 30.0; // v1.1.3: 유지 시간 변수화(기본 30초)
 
   // v1.8.0: 오버레이 테마 색상 추가
   String _bgColor = 'E60D47A1'; // Default Signature Blue
@@ -96,7 +96,7 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
     setState(() {
       _position = prefs.getString('pref_pos_v4') ?? 'middle';
       _fontSize = (prefs.getInt('pref_size_v4') ?? 25).toDouble();
-      _listFontSize = (prefs.getDouble('pref_list_size_v4') ?? 10.0);
+      _listFontSize = (prefs.getDouble('pref_list_size_v4') ?? 14.0);
       _showDuration = (prefs.getDouble('pref_duration_v4') ?? 30.0);
       _bgColor = prefs.getString('pref_bg_v1') ?? 'E60D47A1';
       _textColor = prefs.getString('pref_text_v1') ?? 'FFFFFF';
@@ -324,7 +324,10 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
         children: [
           FloatingActionButton.extended(
             heroTag: 'clear',
-            onPressed: () => platform.invokeMethod('clearOverlay'),
+            onPressed: () {
+              if (defaultTargetPlatform == TargetPlatform.iOS) return;
+              platform.invokeMethod('clearOverlay');
+            },
             label: const Text('알림 지우기'),
             icon: const Icon(Icons.delete_sweep),
             backgroundColor: Colors.pink.shade50,
@@ -334,6 +337,12 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
           FloatingActionButton.extended(
             heroTag: 'test',
             onPressed: () async {
+              if (defaultTargetPlatform == TargetPlatform.iOS) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('iOS에서는 기본 전화 화면에 발신자 이름이 바로 표시됩니다. 별도의 오버레이를 지원하지 않습니다.')),
+                );
+                return;
+              }
               await platform.invokeMethod('testOverlay', {
                 'info': '홍미나(상무/팀장)\n전략기획지원팀',
                 'position': _position,
@@ -545,6 +554,12 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () async {
+                            if (defaultTargetPlatform == TargetPlatform.iOS) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('iOS에서는 기본 전화 화면에 발신자 이름이 바로 표시됩니다. 별도의 오버레이를 지원하지 않습니다.')),
+                              );
+                              return;
+                            }
                             await platform.invokeMethod('testOverlay', {
                               'info': '홍미나(상무/팀장)\n전략기획지원팀',
                               'position': _position,
@@ -568,7 +583,10 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () => platform.invokeMethod('clearOverlay'),
+                          onPressed: () {
+                            if (defaultTargetPlatform == TargetPlatform.iOS) return;
+                            platform.invokeMethod('clearOverlay');
+                          },
                           icon: const Icon(Icons.delete_sweep, size: 20),
                           label: const Text('알림 지우기', style: TextStyle(fontSize: 13)),
                           style: ElevatedButton.styleFrom(
