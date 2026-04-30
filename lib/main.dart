@@ -121,10 +121,64 @@ class _EmployeeSearchPageState extends State<EmployeeSearchPage> {
         _employees = employees;
         _filteredEmployees = employees;
       });
+
+      // v1.9.0: iOS CallKit App Group 연락처 동기화
+      // 안드로이드 빌드에는 전혀 영향을 주지 않습니다 (플랫폼 체크 포함)
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        await _syncContactsToiOSCallKit(employees);
+      }
     } catch (e) {
       debugPrint("Data Init Error: $e");
     }
   }
+
+  /// iOS CallKit (CallDirectoryExtension) 연동을 위해
+  /// App Group UserDefaults에 연락처 목록을 저장합니다.
+  Future<void> _syncContactsToiOSCallKit(List<Map<String, dynamic>> employees) async {
+    try {
+      // 전화번호를 CallKit 규격 (국제번호 82로 시작, 하이픈 없음)으로 변환하여 맵에 저장
+      final Map<String, String> callKitContacts = {};
+
+      for (final emp in employees) {
+        final name = (emp['name'] ?? '').toString();
+        final rank = (emp['rank'] ?? '').toString();
+        final dept = (emp['department'] ?? '').toString();
+        final label = dept.isNotEmpty ? '$name $rank($dept)' : '$name $rank';
+
+        // 휴대폰 번호 변환
+        final rawPhone = (emp['phone_number'] ?? '').toString();
+        final e164Phone = _toE164Korean(rawPhone);
+        if (e164Phone != null) {
+          callKitContacts[e164Phone] = label;
+        }
+
+        // 사무실 번호 변환
+        final rawOffice = (emp['office_phone'] ?? '').toString();
+        final e164Office = _toE164Korean(rawOffice);
+        if (e164Office != null && e164Office != e164Phone) {
+          callKitContacts[e164Office] = label;
+        }
+      }
+
+      // MethodChannel을 통해 iOS 네이티브에서 App Group UserDefaults에 저장
+      await platform.invokeMethod('syncCallKitContacts', {'contacts': callKitContacts});
+      debugPrint("[iOS] CallKit 연락처 동기화 완료: ${callKitContacts.length}건");
+    } catch (e) {
+      debugPrint("[iOS] CallKit 동기화 실패: $e");
+    }
+  }
+
+  /// 한국 전화번호를 E.164 국제번호 문자열로 변환 (예: 010-1234-5678 -> 821012345678)
+  String? _toE164Korean(String raw) {
+    if (raw.isEmpty) return null;
+    String digits = raw.replaceAll(RegExp(r'[^\d]'), '');
+    if (digits.isEmpty) return null;
+    if (digits.startsWith('82')) return digits; // 이미 국제번호
+    if (digits.startsWith('0')) digits = '82${digits.substring(1)}'; // 010... -> 8210...
+    if (digits.length < 10) return null; // 너무 짧은 번호 무시
+    return digits;
+  }
+
 
   void _filterEmployees(String query) {
     setState(() {
